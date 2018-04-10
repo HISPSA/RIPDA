@@ -1,0 +1,1364 @@
+<style type="text/css">
+
+	td
+	  {
+		  padding:4px;
+		  font-size:10.0pt;
+		  font-weight:400;
+		  font-style:normal;
+		  text-decoration:none;
+		  font-family:Arial;
+		  text-align:general;
+		  vertical-align:middle;
+		  border:none;
+	}
+	td.number{
+		text-align:right;
+	}
+	.colheaderQ{
+		font-weight:700;
+		font-size: 14pt;
+		color:#000000;
+		border:1px solid #FFFFFF;
+		padding:4px;
+		width:50px;
+		vertical-align:middle;
+		text-align:center;
+	}
+	.colheader
+	{
+		font-weight:700;
+		font-size: 14pt;
+		color:#000000;
+		border:1px solid #CFCFCF;
+		padding:4px;
+		width:50px;
+		vertical-align:top;
+		overflow:hidden;
+		text-overflow:ellipsis;
+		text-align:center;
+	}
+	div.repOUname{
+		font-weight:700;
+		font-size:11pt;
+		padding:4px 0px 0px 4px;
+		color:#1C7800;
+	}
+	div.repTitle{
+		font-weight:700;
+		font-size:12pt;
+		padding:4px 0px 0px 4px;
+		color:#000000;
+		width: 450px;
+	}
+	.diff{
+		font-size:7pt;
+		color:#808080;
+	}
+</style>
+
+
+<script type="text/javascript">
+
+var orgUnit = dhis2.report.organisationUnit;
+var orgUnitHierarchy = dhis2.report.organisationUnitHierarchy;
+var orgUnitChildren = dhis2.report.organisationUnitChildren;
+var period = dhis2.report.periods;
+var repuid = getParameterByName('uid');
+
+var varJSON;
+var outVals = '';
+var outCumul = '';
+var outCumulOrg = '';
+var CumulOrgCount = 0;
+var outJSON;
+var orgUnit_id = getParameterByName('ou');
+var qPe = getParameterByName('pe');
+var today = new Date();
+
+var dd = today.getDate()-1;
+var mm = today.getMonth()+1; //January is 0!
+var yyyy = today.getFullYear()+1;
+
+$(document).ready(
+
+	function() {
+	
+	var DtmNow = new Date().getTime();
+	var ArrT = qPe.split('Q');
+	var PEcr = '';
+	var PEds = '';
+
+	if (parseFloat(ArrT[1]) == 1){
+		PEcr = (ArrT[0] + '01;' + ArrT[0] + '02;' + ArrT[0] + '03');
+		PEds = ((ArrT[0]-1) + ' Jan;' + (ArrT[0]-1) + ' Feb;' + (ArrT[0]-1) + ' Mar');
+	}
+
+	if (parseFloat(ArrT[1]) == 2){
+		PEcr = (ArrT[0] + '04;' + ArrT[0] + '05;' + ArrT[0] + '06');
+		PEds = (ArrT[0] + ' Apr;' + ArrT[0] + ' May;' + ArrT[0] + ' Jun');
+	}
+
+	if (parseFloat(ArrT[1]) == 3){
+		PEcr = (ArrT[0] + '07;' + ArrT[0] + '08;' + ArrT[0] + '09');
+		PEds = (ArrT[0] + ' Jul;' + ArrT[0] + ' Aug;' + ArrT[0] + ' Sep');
+	}
+
+	if (parseFloat(ArrT[1]) == 4){
+		PEcr = (ArrT[0] + '10;' + ArrT[0] + '11;' + ArrT[0] + '12');
+		PEds = (ArrT[0] + ' Oct;' + ArrT[0] + ' Nov;' + ArrT[0] + ' Dec');
+	}
+
+	var dxUIDs = GetOrgUnitAssociatedElements(orgUnit.id);
+
+	//var sJdata = '../api/analytics.json?dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=dx:bKWJNXHbCGi;HqtmIz7BW5I;qyPSSKPJX2R;Uuk6KYfDPQi;k7QSxunPnxQ;fDhBvaf8MmF;Jj6R76N8Bto;NEvVS5Lh75x;GnqI4JXgx7M;Z11sHOJV7uj;QlYc0VEXMoV;MmzbokFQNAz;CL8YLM1Gqeq;oqBHJlpqOcA;YdICnHJlRlj;I6mvcgUkbIL&dimension=pe:' + PEcr + '&displayProperty=NAME&outputIdScheme=ID&uniqueparm=' + DtmNow;
+	//var sPath = '../api/analytics.json?dimension=LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=dx:' + dxUIDs + '&dimension=pe:' + PEcr + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + DtmNow;
+	//lvOtc4VXYKo
+	var sPath = '../api/analytics.json?dimension=WsZjXKlqUN0:Jbh3wnNuN2j&dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=pe:' + PEcr + '&dimension=dx:' + dxUIDs + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + DtmNow;
+	
+	//console.log(sPath);
+
+	$.ajax({
+		url: sPath,
+		success: function (data) {
+			LoadHTMLresultsTable(data,qPe,PEcr,PEds,dxUIDs);
+		}
+	});
+
+}); //document ready function
+
+function GetOrgUnitAssociatedElements(ouid){
+
+	var OUapi = '../api/organisationUnits/' + ouid + '.json?fields=id,name,dataSets[id,dataSetElements[dataElement[id,name]]]';
+	var ouJSON 	= JSON.parse($.ajax({url:OUapi, async: false}).responseText);
+	var sReturn = '';
+
+	for(var s = 0; s < ouJSON.dataSets.length; s++) {
+		//console.log(ouJSON.dataSets[s]);
+		if (ouJSON.dataSets[s].id == 'vv8ed5J7Frf'){
+			for(var i = 0; i < ouJSON.dataSets[s].dataSetElements.length; i++){
+				if (sReturn.indexOf(ouJSON.dataSets[s].dataSetElements[i].dataElement.id + ';') < 0){
+					sReturn += (ouJSON.dataSets[s].dataSetElements[i].dataElement.id + ';');
+				}
+			}
+		}
+	}
+
+	if (sReturn.length > 0){
+		return sReturn.substring(0,sReturn.length-1);
+	}
+
+}
+
+function LoadHTMLresultsTable(myData,PEq,PEcritera,PEdisplay,dxs){
+
+	var i;
+	var p;
+	var sReturn = '';
+	var myArr = [];
+	var sBGcol;
+	var sCol;
+	var iNum = 0;
+	var iDen = 0;
+	var sLastOU;
+	var ArrPEc = PEcritera.split(';');
+	var ArrPEd = PEdisplay.split(';');
+	var ObjAssessmentType = myData.metaData.items[myData.rows[0][1]].name;
+	var myLastDx = '';
+	var ArrPE = PEq.split('Q');
+	var OUlevel = 0;
+	var OUoutputLevel;
+	var ArrDen = dxs.split(';');
+
+	for(i = 0; i < myData.rows.length; i++) {
+
+		if (myLastDx.indexOf(myData.rows[i][0]) < 0){
+
+			myArr.push({
+				dx: myData.rows[i][0],
+				dxname: myData.metaData.items[myData.rows[i][0]].name,
+				source1: ReturnLookup(myData,myData.rows[i][0],'LArumsK99c4',ArrPEc[0]).replace('.0',''),
+				dhis1: ReturnLookup(myData,myData.rows[i][0],'kHGxIFekzcG',ArrPEc[0]).replace('.0',''),
+				diff1: 0,
+				absdev1: '',
+				source2: ReturnLookup(myData,myData.rows[i][0],'LArumsK99c4',ArrPEc[1]).replace('.0',''),
+				dhis2: ReturnLookup(myData,myData.rows[i][0],'kHGxIFekzcG',ArrPEc[1]).replace('.0',''),
+				diff2: 0,
+				absdev2: '',
+				source3: ReturnLookup(myData,myData.rows[i][0],'LArumsK99c4',ArrPEc[2]).replace('.0',''),
+				dhis3: ReturnLookup(myData,myData.rows[i][0],'kHGxIFekzcG',ArrPEc[2]).replace('.0',''),
+				diff3: 0,
+				absdev3: '',
+				source: '',
+				dhis: '',
+				diff: '',
+				absdev: ''
+				});
+
+			myLastDx += (myData.rows[i][0] + ';');
+
+		}
+
+	}
+
+	//console.log(myData);
+	//console.log(JSON.stringify(myArr));
+
+	var sort_by = function(field, reverse, primer){
+
+	   var key = primer ? 
+		   function(x) {return primer(x[field])} : 
+		   function(x) {return x[field]};
+
+	   reverse = !reverse ? 1 : -1;
+
+	   return function (a, b) {
+		   return a = key(a), b = key(b), reverse * ((a > b) - (b > a));
+		 } 
+	}
+
+	myArr.sort(sort_by('dxname', false));
+
+	var OUlevelLookup = '../api/organisationUnitLevels.json?fields=id,name,level&paging=false';
+	OUlevelJ = $.ajax({url:OUlevelLookup, async: false}).responseText; 
+	var objLevels = JSON.parse(OUlevelJ);
+	var OUlevelArr = GetOUlevelNames(objLevels);
+	OUlevelArr.sort(sort_by('level', false));
+	OUlevel = OUlevelArr[orgUnitHierarchy.length-1].name;
+
+
+	var AbsTot = 0;
+	var SourceTot = 0;
+
+	var AbsTot1 = 0;
+	var SourceTot1 = 0;
+	var DhisTot1 = 0;
+	var AbsTot2 = 0;
+	var SourceTot2 = 0;
+	var DhisTot2 = 0;
+	var AbsTot3 = 0;
+	var SourceTot3 = 0;
+	var DhisTot3 = 0;
+
+	for(i = 0; i < myArr.length; i++) {
+
+		if (myArr[i].source1 == ''){
+			myArr[i]['absdev1'] = '';
+			myArr[i]['diff1'] = '';
+			if (myArr[i].dhis1 != ''){
+				AbsTot += parseFloat(myArr[i].dhis1);
+				AbsTot1 += parseFloat(myArr[i].dhis1);
+			}
+		}
+		else{
+			SourceTot += parseFloat(myArr[i].source1);
+			SourceTot1 += parseFloat(myArr[i].source1);
+			if (myArr[i].dhis1 == ''){
+				myArr[i]['absdev1'] = ((Math.abs(myArr[i].source1 - 0) / myArr[i].source1) * 100);
+				myArr[i]['diff1'] = myArr[i].source1;
+				AbsTot += parseFloat(myArr[i].source1);
+				AbsTot1 += parseFloat(myArr[i].source1);
+			}
+			else{
+				DhisTot1 += parseFloat(myArr[i].dhis1);
+			}
+			if ((myArr[i].dhis1 == 0) && (myArr[i].source1 == 0)){
+				myArr[i]['absdev1'] = 0;
+				myArr[i]['diff1'] = 0;
+			}
+			else{
+				if (myArr[i].source1 == 0){
+					myArr[i]['absdev1'] = 0;
+				}
+				else{
+					myArr[i]['absdev1'] = ((Math.abs(myArr[i].source1 - myArr[i].dhis1) / myArr[i].source1) * 100);
+				}
+				myArr[i]['diff1'] = Math.abs(myArr[i].source1 - myArr[i].dhis1);
+				AbsTot += Math.abs(parseFloat(myArr[i].source1) - parseFloat(myArr[i].dhis1));
+				AbsTot1 += Math.abs(parseFloat(myArr[i].source1) - parseFloat(myArr[i].dhis1));
+			}
+		}
+
+		if (myArr[i].source2 == ''){
+			myArr[i]['absdev2'] = '';
+			myArr[i]['diff2'] = '';
+			if (myArr[i].dhis2 != ''){
+				AbsTot += parseFloat(myArr[i].dhis2);
+				AbsTot2 += parseFloat(myArr[i].dhis2);
+			}
+		}
+		else{
+			SourceTot += parseFloat(myArr[i].source2);
+			SourceTot2 += parseFloat(myArr[i].source2);
+			if (myArr[i].dhis2 == ''){
+				myArr[i]['absdev2'] = ((Math.abs(myArr[i].source2 - 0) / myArr[i].source2) * 100);
+				myArr[i]['diff2'] = myArr[i].source2;
+				AbsTot += parseFloat(myArr[i].source2);
+				AbsTot2 += parseFloat(myArr[i].source2);
+			}
+			else{
+				DhisTot2 += parseFloat(myArr[i].dhis2);
+			}
+			if ((myArr[i].dhis2 == 0) && (myArr[i].source2 == 0)){
+				myArr[i]['absdev2'] = 0;
+				myArr[i]['diff2'] = 0;
+			}
+			else{
+				if (myArr[i].source2 == 0){
+					myArr[i]['absdev2'] = 0;
+				}
+				else{
+					myArr[i]['absdev2'] = ((Math.abs(myArr[i].source2 - myArr[i].dhis2) / myArr[i].source2) * 100);
+				}
+				myArr[i]['diff2'] = Math.abs(myArr[i].source2 - myArr[i].dhis2);
+				AbsTot += Math.abs(parseFloat(myArr[i].source2) - parseFloat(myArr[i].dhis2));
+				AbsTot2 += Math.abs(parseFloat(myArr[i].source2) - parseFloat(myArr[i].dhis2));
+			}
+		}
+
+		if (myArr[i].source3 == ''){
+			myArr[i]['absdev3'] = '';
+			myArr[i]['diff3'] = '';
+			if (myArr[i].dhis3 != ''){
+				AbsTot += parseFloat(myArr[i].dhis3);
+				AbsTot3 += parseFloat(myArr[i].dhis3);
+			}
+		}
+		else{
+			SourceTot += parseFloat(myArr[i].source3);
+			SourceTot3 += parseFloat(myArr[i].source3);
+			if (myArr[i].dhis3 == ''){
+				myArr[i]['absdev3'] = ((Math.abs(myArr[i].source3 - 0) / myArr[i].source3) * 100);
+				myArr[i]['diff3'] = myArr[i].source3;
+				AbsTot += parseFloat(myArr[i].source3);
+				AbsTot3 += parseFloat(myArr[i].source3);
+			}
+			else{
+				DhisTot3 += parseFloat(myArr[i].dhis3);
+			}
+			if ((myArr[i].dhis3 == 0) && (myArr[i].source3 == 0)){
+				myArr[i]['absdev3'] = 0;
+				myArr[i]['diff3'] = 0;
+			}
+			else{
+				if (myArr[i].source3 == 0){
+					myArr[i]['absdev3'] = 0;
+				}
+				else{
+					myArr[i]['absdev3'] = ((Math.abs(myArr[i].source3 - myArr[i].dhis3) / myArr[i].source3) * 100);
+				}
+				myArr[i]['diff3'] = Math.abs(myArr[i].source3 - myArr[i].dhis3);
+				AbsTot += Math.abs(parseFloat(myArr[i].source3) - parseFloat(myArr[i].dhis3));
+				AbsTot3 += Math.abs(parseFloat(myArr[i].source3) - parseFloat(myArr[i].dhis3));
+			}
+		}
+
+	}
+
+	var ele = document.getElementById('ReportHeader');
+
+	var tbl = document.createElement('table');
+	tbl.style.width = '100%';
+	tbl.style.minWidth = '800px';
+
+	var tr = document.createElement('tr');
+	var td = document.createElement('td');
+	td.setAttribute('style','vertical-align:top;text-align:left;');
+
+	ele.appendChild(tbl);
+	tbl.appendChild(tr);
+	tr.appendChild(td);
+
+	var h1 = document.createElement('h1');
+	h1.setAttribute('style','font-weight:700;color:#000000;padding:0;height:24px');
+	var txt = document.createTextNode('RIPDA Quarterly Report: PHC');
+	h1.appendChild(txt);
+	td.appendChild(h1);
+
+	var dv = document.createElement('div');
+	dv.setAttribute('style','font-weight:700;color:#000000;font-size:10pt;text-decoration:underline;padding: 0 0 10px 0');
+	var txt = document.createTextNode('Audit Type: ' + ObjAssessmentType);
+	dv.appendChild(txt);
+	td.appendChild(dv);
+
+	var sLabel = (OUlevel + ': ' + orgUnit.name + '');
+
+	var dv = document.createElement('div');
+	dv.setAttribute('style','font-weight:700;color:#000000;font-size:10pt;');
+	var txt = document.createTextNode(sLabel);
+	dv.appendChild(txt);
+	td.appendChild(dv);
+
+	var sLabel = ('Period: ' + '');
+	var sPeriod = ((ArrPE[1] == 1) ? (parseFloat(ArrPE[0])-1 + ' FQ4') : (ArrPE[0]) + ' FQ' + (parseFloat(ArrPE[1])-1) + '');
+	sLabel += sPeriod;
+	var dv = document.createElement('div');
+	dv.setAttribute('style','font-weight:700;color:#000000;font-size:10pt;');
+	var txt = document.createTextNode(sLabel);
+	dv.appendChild(txt);
+	td.appendChild(dv);
+
+
+	var br = document.createElement('br');
+	td.appendChild(br);
+
+	var PolicyURL = '../api/analytics.json?dimension=dx:JuZkSIszC6M&dimension=pe:' + PEq + '&filter=ou:' + orgUnit_id + '&displayProperty=NAME&outputIdScheme=ID';
+	PolicyJ = JSON.parse($.ajax({url:PolicyURL, async: false}).responseText);
+	var PolNames = PolicyJ.metaData.items;
+
+
+	var dv = document.createElement('div');
+	ele.appendChild(dv);
+	var sp = document.createElement('span');
+	sp.setAttribute('style','font-weight:400;color:#000000;font-size:10pt;text-decoration:underline;padding-top:4px;');
+	td.appendChild(sp);
+	
+	var txt = document.createTextNode(ReturnLookupName(PolNames,'JuZkSIszC6M'));
+	sp.appendChild(txt);
+
+	var DblVal = ((PolicyJ.rows.length != 0) ? PolicyJ.rows[0][2] : '');
+
+	var sp = document.createElement('span');
+	sp.setAttribute('style','font-weight:400;color:#000000;font-size:12pt;text-decoration:none;padding:4px;');
+	td.appendChild(sp);
+
+	var txt = document.createTextNode(': ' + ((DblVal.length > 0) ?  DblVal.replace('.0','') + '%' : '0%'));
+	sp.appendChild(txt);
+
+	var br = document.createElement('br');
+	td.appendChild(br);
+
+
+	var tdSummary = document.createElement('td');
+	tdSummary.id = 'AnalysisSummary';
+	tdSummary.setAttribute('style','vertical-align:top;text-align:right;width:500px');
+	tr.appendChild(tdSummary);
+
+	var ele = document.getElementById('AnalysisDetails');
+
+	var table = document.createElement('table');
+	table.classList.add('listTable');
+	table.classList.add('gridTable');
+
+	table.style.backgroundColor = '#ffffff';
+	table.style.width = '100%';
+	table.style.minWidth = '800px';
+	table.style.padding = '0';
+	table.style.borderLeft = '0';
+	table.style.borderTop = '0';
+	table.style.borderRight = '0';
+	table.style.borderBottom = '0';
+	table.style.borderSpacing = '0';
+	ele.appendChild(table);
+
+	var tr = document.createElement('tr');
+	table.appendChild(tr);
+
+	var td = document.createElement('td');
+	td.setAttribute('style','vertical-align:top');
+	td.setAttribute('colspan','1');
+	td.setAttribute('rowspan','2');
+	td.style.borderTop = '0';
+	td.style.borderLeft = '0';
+	tr.appendChild(td);
+
+	var dvHeader = document.createElement('div');
+	dvHeader.classList.add('repTitle') ;
+	td.appendChild(dvHeader);
+
+	var dvHeader = document.createElement('div');
+	dvHeader.classList.add('repOUname') ;
+	dvHeader.id = 'OrgUnitName';
+	td.appendChild(dvHeader);
+
+	var dvPeriods = document.createElement('div');
+	dvPeriods.classList.add('repTitle') ;
+	td.appendChild(dvPeriods);
+
+	//# COLUMN 1
+	var td = document.createElement('td');
+	td.classList.add('colheaderQ') ;
+	td.setAttribute('colspan','3');
+	tr.appendChild(td);
+	var txt = document.createTextNode(ArrPEd[0]);
+	td.appendChild(txt);
+
+	//# COLUMN 2
+	var td = document.createElement('td');
+	td.classList.add('colheaderQ') ;
+	td.setAttribute('colspan','3');
+	tr.appendChild(td);
+	var txt = document.createTextNode(ArrPEd[1]);
+	td.appendChild(txt);
+
+	//# COLUMN 3
+	var td = document.createElement('td');
+	td.classList.add('colheaderQ') ;
+	td.setAttribute('colspan','3');
+	tr.appendChild(td);
+	var txt = document.createTextNode(ArrPEd[2]);
+	td.appendChild(txt);
+
+	//# COLUMN 4
+	var td = document.createElement('td');
+	td.classList.add('colheaderQ') ;
+	td.setAttribute('style','font-size:12pt;background-Color:#E8EFFF;');
+	td.setAttribute('colspan','4');
+	tr.appendChild(td);
+	var txt = document.createTextNode(sPeriod);
+	td.appendChild(txt);
+
+	var tr = document.createElement('tr');
+	table.appendChild(tr);
+
+	//if (MaxQ >= 1)
+	{
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('source');
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('dhis');
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('abs dev');
+		td.appendChild(txt);
+	}
+	
+	//if (MaxQ >= 2)
+	{
+
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('source');
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('dhis');
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('abs dev');
+		td.appendChild(txt);
+	}
+
+	//if (MaxQ >= 3)
+	{
+
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('source');
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('dhis');
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('colheader') ;
+		td.setAttribute('colspan','1');
+		tr.appendChild(td);
+		var txt = document.createTextNode('abs dev');
+		td.appendChild(txt);
+
+	}
+
+	var td = document.createElement('td');
+	td.classList.add('colheader') ;
+	td.setAttribute('colspan','1');
+	tr.appendChild(td);
+	var txt = document.createTextNode('SOURCE');
+	td.appendChild(txt);
+	var td = document.createElement('td');
+	td.classList.add('colheader') ;
+	td.setAttribute('colspan','1');
+	tr.appendChild(td);
+	var txt = document.createTextNode('DHIS');
+	td.appendChild(txt);
+
+	var td = document.createElement('td');
+	td.classList.add('colheader') ;
+	td.setAttribute('colspan','1');
+	tr.appendChild(td);
+	var txt = document.createTextNode('Cum Abs DEV');
+	td.appendChild(txt);
+
+	var td = document.createElement('td');
+	td.classList.add('colheader') ;
+	td.setAttribute('colspan','1');
+	tr.appendChild(td);
+	var txt = document.createTextNode('Bal DEV');
+	td.appendChild(txt);
+
+	var iS1 = 0, iS2 = 0, iS3 = 0, iD1 = 0, iD2 = 0, iD3 = 0, df1 = 0, df2 = 0, df3 = 0;
+
+	for(i = 0; i < myArr.length; i++) {
+
+		myArr[i].source = (((myArr[i].source1.length > 0) ? parseFloat(myArr[i].source1) : 0) + ((myArr[i].source2.length > 0) ? parseFloat(myArr[i].source2) : 0) + ((myArr[i].source3.length > 0) ? parseFloat(myArr[i].source3) : 0));
+		myArr[i].dhis = (((myArr[i].dhis1.length > 0) ? parseFloat(myArr[i].dhis1) : 0) + ((myArr[i].dhis2.length > 0) ? parseFloat(myArr[i].dhis2) : 0) + ((myArr[i].dhis3.length > 0) ? parseFloat(myArr[i].dhis3) : 0));
+
+		if (myArr[i].source == ''){
+			myArr[i].absdev = '';
+			myArr[i].diff = '';
+		}
+		else{
+			if (myArr[i].dhis == ''){
+				myArr[i].absdev = ((Math.abs(myArr[i].source - 0) / myArr[i].source) * 100);
+				myArr[i].diff = myArr[i].source;
+			}
+			if ((myArr[i].dhis == 0) && (myArr[i].source == 0)){
+				myArr[i].absdev = 0;
+				myArr[i].diff = 0;
+			}
+			else{
+				myArr[i].absdev = ((Math.abs(myArr[i].source - myArr[i].dhis) / myArr[i].source) * 100);
+				myArr[i].diff = Math.abs(myArr[i].source - myArr[i].dhis);
+			}
+		}
+
+		if ((myArr[i].absdev == '') && (myArr[i].dhis == 0) && (myArr[i].source == 0)){
+			myArr[i].absdev = 0;
+		}
+
+		iS1 += ((myArr[i].source1 != '') ? parseFloat(myArr[i].source1) : 0);
+		iS2 += ((myArr[i].source2 != '') ? parseFloat(myArr[i].source2) : 0);
+		iS3 += ((myArr[i].source3 != '') ? parseFloat(myArr[i].source3) : 0);
+
+		iD1 += ((myArr[i].dhis1 != '') ? parseFloat(myArr[i].dhis1) : 0);
+		iD2 += ((myArr[i].dhis2 != '') ? parseFloat(myArr[i].dhis2) : 0);
+		iD3 += ((myArr[i].dhis3 != '') ? parseFloat(myArr[i].dhis3) : 0);
+
+		df1 += ((myArr[i].diff1 != '') ? parseFloat(myArr[i].diff1) : 0);
+		df2 += ((myArr[i].diff2 != '') ? parseFloat(myArr[i].diff2) : 0);
+		df3 += ((myArr[i].diff3 != '') ? parseFloat(myArr[i].diff3) : 0);
+
+		if ((((myArr[i].diff1.toString().length > 0) ? parseFloat(myArr[i].diff1) : 0) + ((myArr[i].diff2.toString().length > 0) ? parseFloat(myArr[i].diff2) : 0) + ((myArr[i].diff3.toString().length > 0) ? parseFloat(myArr[i].diff3) : 0)) == 0){
+			myArr[i].diff = '';
+		}
+		else{
+			myArr[i].diff = parseFloat((((myArr[i].diff1.toString().length > 0) ? parseFloat(myArr[i].diff1) : 0) + ((myArr[i].diff2.toString().length > 0) ? parseFloat(myArr[i].diff2) : 0) + ((myArr[i].diff3.toString().length > 0) ? parseFloat(myArr[i].diff3) : 0)));
+		}
+
+
+		if (myArr[i].diff.toString().length == 0){
+			myArr[i]['absdev'] = 0;
+		}
+		else{
+			if (myArr[i].source > 0){
+				myArr[i]['absdev'] = ((myArr[i].diff / (myArr[i].source)) * 100);
+			}
+			else{
+				myArr[i]['absdev'] = 0;
+			}
+		}
+
+	}
+
+	for(i = 0; i < myArr.length; i++) {
+
+		var tr = document.createElement('tr');
+		table.appendChild(tr);
+		var td = document.createElement('td');
+		tr.appendChild(td);
+		td.setAttribute('nowrap','');
+		var txt = document.createTextNode(myArr[i].dxname);
+		td.appendChild(txt);
+
+		var absdevVal1 = myArr[i].absdev1.toString();
+
+		table.appendChild(tr);
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		tr.appendChild(td);
+		var txt = document.createTextNode((myArr[i].source1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		tr.appendChild(td);
+		var txt = document.createTextNode((myArr[i].dhis1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+		td.appendChild(txt);
+
+		if (myArr[i].diff1 != 0){
+			var spn = document.createElement('span');
+			spn.setAttribute('style','position:relative;left:-35px;top:-13px;font-size:7pt;color:#808080;background-Color:#ffffff;border:2px solid #ffffff;') ;
+			td.appendChild(spn);
+			var txt = document.createTextNode(myArr[i].diff1);
+			spn.appendChild(txt);
+		}
+
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		td.setAttribute('style','background-Color:#F8F8F8;' + ((absdevVal1.length == 0) ? '' : ((parseFloat(absdevVal1) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(absdevVal1) >= 25) ? 'color:#D90000' : '' ))));
+		tr.appendChild(td);
+		var txt = document.createTextNode(((absdevVal1.length == 0) ? '' : parseFloat(absdevVal1).toFixed(1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%'));
+		td.appendChild(txt);
+
+
+		var absdevVal2 = myArr[i].absdev2.toString();
+	
+		table.appendChild(tr);
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		tr.appendChild(td);
+		var txt = document.createTextNode((myArr[i].source2).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		tr.appendChild(td);
+		var txt = document.createTextNode((myArr[i].dhis2).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+		td.appendChild(txt);
+
+		if (myArr[i].diff2 != 0){
+			var spn = document.createElement('span');
+			spn.setAttribute('style','position:relative;left:-35px;top:-13px;font-size:7pt;color:#808080;background-Color:#ffffff;border:2px solid #ffffff;') ;
+			td.appendChild(spn);
+			var txt = document.createTextNode(myArr[i].diff2);
+			spn.appendChild(txt);
+		}
+
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		td.setAttribute('style','background-Color:#F8F8F8;' + ((absdevVal2.length == 0) ? '' : ((parseFloat(absdevVal2) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(absdevVal2) >= 25) ? 'color:#D90000' : '' ))));
+		tr.appendChild(td);
+		var txt = document.createTextNode(((absdevVal2.length == 0) ? '' : parseFloat(absdevVal2).toFixed(1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%'));
+		td.appendChild(txt);
+
+		var absdevVal3 = myArr[i].absdev3.toString();
+
+		table.appendChild(tr);
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		tr.appendChild(td);
+		var txt = document.createTextNode((myArr[i].source3).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		tr.appendChild(td);
+		var txt = document.createTextNode((myArr[i].dhis3).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+		td.appendChild(txt);
+
+		if (myArr[i].diff3 != 0){
+			var spn = document.createElement('span');
+			spn.setAttribute('style','position:relative;left:-32px;top:-13px;font-size:7pt;color:#808080;background-Color:#ffffff;border:2px solid #ffffff;') ;
+			td.appendChild(spn);
+			var txt = document.createTextNode(myArr[i].diff3);
+			spn.appendChild(txt);
+		}
+
+		var td = document.createElement('td');
+		td.classList.add('number') ;
+		td.setAttribute('style','background-Color:#F8F8F8;' + ((absdevVal3.length == 0) ? '' : ((parseFloat(absdevVal3) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(absdevVal3) >= 25) ? 'color:#D90000' : '' ))));
+		tr.appendChild(td);
+		var txt = document.createTextNode(((absdevVal3.length == 0) ? '' : parseFloat(absdevVal3).toFixed(1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%'));
+		td.appendChild(txt);
+
+
+		var absdevVal = myArr[i].absdev.toString();
+
+		table.appendChild(tr);
+		var td = document.createElement('td');
+		td.classList.add('number');
+		td.setAttribute('style','background-Color:#E8EFFF;');
+		tr.appendChild(td);
+		var txt = document.createTextNode((myArr[i].source));
+		td.appendChild(txt);
+
+		var td = document.createElement('td');
+		td.classList.add('number');
+		td.setAttribute('style','background-Color:#E8EFFF;');
+		tr.appendChild(td);
+		var txt = document.createTextNode((myArr[i].dhis));
+		td.appendChild(txt);
+
+		if (myArr[i].diff != 0){
+			var spn = document.createElement('span');
+			spn.setAttribute('style','position:relative;left:-32px;top:-13px;font-size:7pt;color:#808080;background-Color:#E8EFFF;border:2px solid #E8EFFF;') ;
+			td.appendChild(spn);
+			var txt = document.createTextNode(myArr[i].diff);
+			spn.appendChild(txt);
+		}
+
+		var td = document.createElement('td');
+		td.classList.add('number');
+		td.setAttribute('style','background-Color:#E8EFFF;' + ((absdevVal.length == 0) ? '' : ((parseFloat(absdevVal) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(absdevVal) >= 25) ? 'color:#D90000' : '' ))));
+		tr.appendChild(td);
+		var txt = document.createTextNode(((absdevVal.length == 0) ? '' : parseFloat(absdevVal).toFixed(1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%'));
+		//var txt = document.createTextNode(absdevVal + '%');
+		td.appendChild(txt);
+
+		var BalDev = '';
+
+		if (myArr[i].source == ''){
+			BalDev = '';
+		}
+		else{
+			if (myArr[i].dhis == ''){
+				BalDev = (((myArr[i].source - 0) / myArr[i].source) * 100);
+			}
+			if ((myArr[i].dhis == 0) && (myArr[i].source == 0)){
+				BalDev = 0;
+			}
+			else{
+				BalDev = (((myArr[i].source - myArr[i].dhis) / myArr[i].source) * 100);
+			}
+		}
+
+		if ((BalDev == '') && (myArr[i].dhis == 0) && (myArr[i].source == 0)){
+			BalDev = 0;
+		}
+		else{
+			if (myArr[i].source == 0){
+				BalDev = 0;
+			}
+		}
+
+		var td = document.createElement('td');
+		td.classList.add('number');
+		td.setAttribute('style','background-Color:#E8EFFF;' + ((BalDev.length == 0) ? '' : ((parseFloat(Math.abs(BalDev)) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(Math.abs(BalDev)) >= 25) ? 'color:#D90000' : '' ))));
+		tr.appendChild(td);
+		var txt = document.createTextNode(((BalDev.length == 0) ? '' : parseFloat(BalDev).toFixed(1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%'));
+		td.appendChild(txt);
+
+	}
+
+	
+
+
+	var tr = document.createElement('tr');
+	tr.setAttribute('style','background-Color:#C9C9C9;');
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.setAttribute('style','text-align:right;font-weight:700;');
+	tr.appendChild(td);
+	td.setAttribute('nowrap','');
+
+	var txt = document.createTextNode('Overall Scores');
+	td.appendChild(txt);
+
+
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	tr.appendChild(td);
+	var txt = document.createTextNode(iS1.toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+	td.appendChild(txt);
+
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	tr.appendChild(td);
+	var txt = document.createTextNode(iD1.toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+	td.appendChild(txt);
+
+	/*var td = document.createElement('td');
+	td.classList.add('number') ;
+	td.classList.add('diff');
+	tr.appendChild(td);
+	var txt = document.createTextNode((myArr[i].diff1));
+	td.appendChild(txt);*/
+
+	if (df1 != 0){
+		var spn = document.createElement('span');
+		spn.setAttribute('style','position:relative;left:-35px;top:-13px;font-size:7pt;color:#808080;background-Color:#C9C9C9;border:2px solid #C9C9C9;') ;
+		td.appendChild(spn);
+		var txt = document.createTextNode(df1);
+		spn.appendChild(txt);
+	}
+	
+	var ab1 = parseFloat(df1/iS1*100).toFixed(1);
+
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	td.setAttribute('style','background-Color:#C9C9C9;' + ((df1.length == 0) ? '' : ((parseFloat(ab1) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(ab1) >= 25) ? 'color:#D90000' : '' ))));
+	tr.appendChild(td);
+	var txt = document.createTextNode((ab1.length == 0) ? '' : (ab1).toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%');
+	//txt += ((txt.length > 0) ? '%' : '');
+	td.appendChild(txt);
+
+
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	tr.appendChild(td);
+	var txt = document.createTextNode(iS2.toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+	td.appendChild(txt);
+
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	tr.appendChild(td);
+	var txt = document.createTextNode(iD2.toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+	td.appendChild(txt);
+
+	/*var td = document.createElement('td');
+	td.classList.add('number') ;
+	td.classList.add('diff');
+	tr.appendChild(td);
+	var txt = document.createTextNode((myArr[i].diff2));
+	td.appendChild(txt);*/
+
+	if (df2 != 0){
+		var spn = document.createElement('span');
+		spn.setAttribute('style','position:relative;left:-35px;top:-13px;font-size:7pt;color:#808080;background-Color:#C9C9C9;border:2px solid #C9C9C9;') ;
+		td.appendChild(spn);
+		var txt = document.createTextNode(df2);
+		spn.appendChild(txt);
+	}
+
+	var ab2 = parseFloat(df2/iS2*100).toFixed(1);
+
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	td.setAttribute('style','background-Color:#C9C9C9;' + ((ab2.length == 0) ? '' : ((parseFloat(ab2) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(ab2) >= 25) ? 'color:#D90000' : '' ))));
+	tr.appendChild(td);
+	var txt = document.createTextNode((ab2.length == 0) ? '' : (ab2).toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%');
+	td.appendChild(txt);
+
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	tr.appendChild(td);
+	var txt = document.createTextNode((iS3).toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+	td.appendChild(txt);
+
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	tr.appendChild(td);
+	var txt = document.createTextNode((iD3).toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ","));
+	td.appendChild(txt);
+
+	/*var td = document.createElement('td');
+	td.classList.add('number') ;
+	td.classList.add('diff');
+	tr.appendChild(td);
+	var txt = document.createTextNode((myArr[i].diff3));
+	td.appendChild(txt);*/
+
+	if (df3 != 0){
+		var spn = document.createElement('span');
+		spn.setAttribute('style','position:relative;left:-32px;top:-13px;font-size:7pt;color:#808080;background-Color:#C9C9C9;border:2px solid #C9C9C9;') ;
+		td.appendChild(spn);
+		var txt = document.createTextNode(df3);
+		spn.appendChild(txt);
+	}
+
+	var ab3 = parseFloat(df3/iS3*100).toFixed(1);
+
+	var td = document.createElement('td');
+	td.classList.add('number') ;
+	td.setAttribute('style','background-Color:#C9C9C9;' + ((ab3.length == 0) ? '' : ((parseFloat(ab3) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(ab3) >= 25) ? 'color:#D90000' : '' ))));
+	tr.appendChild(td);
+	var txt = document.createTextNode((ab3.length == 0) ? '' : (ab3).toString().replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%');
+	td.appendChild(txt);
+
+
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.classList.add('number');
+	td.setAttribute('style','background-Color:#91B2FF;');
+	tr.appendChild(td);
+	var txt = document.createTextNode((iS1 + iS2 + iS3));
+	td.appendChild(txt);
+
+	var td = document.createElement('td');
+	td.classList.add('number');
+	td.setAttribute('style','background-Color:#91B2FF;');
+	tr.appendChild(td);
+	var txt = document.createTextNode((iD1 + iD2 + iD3));
+	td.appendChild(txt);
+
+	/*var td = document.createElement('td');
+	td.classList.add('number') ;
+	td.classList.add('diff');
+	td.setAttribute('style','background-Color:#E8EFFF;');
+	tr.appendChild(td);
+	var txt = document.createTextNode((myArr[i].diff));
+	td.appendChild(txt);*/
+
+	if ((df1 + df2 + df3) != 0){	//if (Math.abs((iD1 + iD2 + iD3) - (iS1 + iS2 + iS3)) != 0){
+		var spn = document.createElement('span');
+		spn.setAttribute('style','position:relative;left:-32px;top:-13px;font-size:7pt;color:#606060;background-Color:#91B2FF;border:2px solid #91B2FF;') ;
+		td.appendChild(spn);
+		var txt = document.createTextNode((df1 + df2 + df3));
+		spn.appendChild(txt);
+	}
+	
+	var absdevVal = ((df1 + df2 + df3) / (iS1 + iS2 + iS3) * 100);
+
+	var td = document.createElement('td');
+	td.classList.add('number');
+	td.setAttribute('style','background-Color:#91B2FF;' + ((absdevVal.length == 0) ? '' : ((parseFloat(absdevVal) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(absdevVal) >= 25) ? 'color:#D90000' : '' ))));
+	tr.appendChild(td);
+	var txt = document.createTextNode(((absdevVal.length == 0) ? '' : parseFloat(absdevVal).toFixed(1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%'));
+	td.appendChild(txt);
+
+	var baldevVal = (((iS1 + iS2 + iS3) - (iD1 + iD2 + iD3)) / (iS1 + iS2 + iS3) * 100);
+
+	var td = document.createElement('td');
+	td.classList.add('number');
+	td.setAttribute('style','background-Color:#91B2FF;' + ((baldevVal.length == 0) ? '' : ((parseFloat(Math.abs(baldevVal)) <= 10) ? 'color:#27A600;font-weight:700;' : ((parseFloat(Math.abs(baldevVal)) >= 25) ? 'color:#D90000' : '' ))));
+	tr.appendChild(td);
+	var txt = document.createTextNode(((baldevVal.length == 0) ? '' : parseFloat(baldevVal).toFixed(1).replace('.0','').replace(/\B(?=(\d{3})+(?!\d))/g, ",") + '%'));
+	td.appendChild(txt);
+	
+	var ele = document.getElementById('AnalysisDetails');
+	var dv = document.createElement('div');
+	dv.setAttribute('style','font-weight:400;color:#000000;font-size:9pt;padding-top:14px;');
+	var txt = document.createTextNode('Table 2. Audit Details for ' + orgUnit.name + ' (' + sPeriod + ')');
+	dv.appendChild(txt);
+	ele.appendChild(dv);
+
+
+	var sp = document.createElement('div');
+	sp.setAttribute('style','width:100%;text-align:center;font-weight:400;color:#000000;font-size:9pt;padding-top:14px;');
+	var txt = document.createTextNode('Report generated: ' + formatDate(today));
+	sp.appendChild(txt);
+	ele.appendChild(sp);
+
+	CreateAnalysisSummary(myArr,sPeriod,tdSummary,ArrDen);
+
+	document.all("loadingmessage").innerHTML = '';
+
+}
+
+function CreateAnalysisSummary(myArr,sPer, tdSummary,ArrDen){
+
+	var iUniqueCount = (myArr.length);
+	var iExpectedCount = ((myArr.length)*3);
+	var iCompleteRowCount = 0;
+	var iCorrectCount = 0;
+	var iCompliantCount = 0;
+	var iMissingSource = 0;
+	var iMissingDHIS = 0;
+	var iMissingCount = 0;
+	var iDiff = 0;
+	var iSource = 0;
+	var iDHIS = 0;
+
+	for(i = 0; i < myArr.length; i++) {	
+
+		if (myArr[i].source1 == myArr[i].dhis1){
+			iCorrectCount += 1;
+		}
+		if (myArr[i].source2 == myArr[i].dhis2){
+			iCorrectCount += 1;
+		}
+		if (myArr[i].source3 == myArr[i].dhis3){
+			iCorrectCount += 1;
+		}
+
+		if (parseFloat(myArr[i].absdev1) <= 10){
+			iCompliantCount += 1;
+		}
+		if (parseFloat(myArr[i].absdev2) <= 10){
+			iCompliantCount += 1;
+		}
+		if (parseFloat(myArr[i].absdev3) <= 10){
+			iCompliantCount += 1;
+		}
+
+		if (myArr[i].source1 == ''){
+			iMissingSource += 1;
+		}
+		if (myArr[i].source2 == ''){
+			iMissingSource += 1;
+		}
+		if (myArr[i].source3 == ''){
+			iMissingSource += 1;
+		}
+
+		if (myArr[i].dhis1 == ''){
+			iMissingDHIS += 1;
+		}
+		if (myArr[i].dhis2 == ''){
+			iMissingDHIS += 1;
+		}
+		if (myArr[i].dhis3 == ''){
+			iMissingDHIS += 1;
+		}
+
+		if (myArr[i].source != ''){
+			iSource += myArr[i].source;
+		}
+
+		if (myArr[i].dhis != ''){
+			iDHIS += myArr[i].dhis;
+		}
+
+		if (myArr[i].diff != ''){
+			iDiff += myArr[i].diff;
+		}
+		
+		iCompleteRowCount += (((myArr[i].source1 != '') || (myArr[i].source2 != '') || (myArr[i].source3 != '') || (myArr[i].dhis1 != '') || (myArr[i].dhis2 != '') || (myArr[i].dhis3 != '')) ? 1 : 0);
+	}
+
+	//var ele = document.getElementById('AnalysisSummary');
+	var tb = document.createElement('table');
+	tb.setAttribute('style','width:100%;text-align:right;text-align:right;');
+	tdSummary.appendChild(tb);
+
+	var tr = document.createElement('tr');
+	tb.appendChild(tr);
+	var td = document.createElement('td');
+	tr.appendChild(td);
+
+	var table = document.createElement('table');
+	table.setAttribute('style','width:340px;border:2px solid #E1E1E1;padding:0;');
+	//table.setAttribute('align','left');
+	td.appendChild(table);
+
+	var tr = document.createElement('tr');
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.setAttribute('style','vertical-align:top;');
+	tr.appendChild(td);
+	var txt = document.createTextNode('Element reporting rate ');
+	td.appendChild(txt);
+	var br = document.createElement('br');
+	td.appendChild(br);
+	var sp = document.createElement('span');
+	sp.setAttribute('style','font-size:8pt;color:#101010;');
+	td.appendChild(sp);
+	var txt = document.createTextNode('% of elements reported of expected ');
+	sp.appendChild(txt);
+
+	var td = document.createElement('td');
+	tr.appendChild(td);
+	td.setAttribute('style','border-left:1px solid #E1E1E1;font-size:10pt;text-align:center;');
+	var txt = document.createTextNode(((iCompleteRowCount > 0) ?  '' + (parseFloat(iCompleteRowCount) / parseFloat(ArrDen.length) * 100).toFixed(1).replace('.0','') + '%' : '0%'));
+	td.appendChild(txt);
+	var sp = document.createElement('div');
+	sp.setAttribute('style','font-size:8pt;color:#808080;text-align:center;');
+	var txt = document.createTextNode(iCompleteRowCount + ' / ' + ArrDen.length);
+	sp.appendChild(txt);
+	td.appendChild(sp);
+	
+	
+	
+	
+	
+	
+	var tr = document.createElement('tr');
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.setAttribute('style','vertical-align:top;');
+	tr.appendChild(td);
+	var txt = document.createTextNode('Absolute correctness rate for monthly values');
+	td.appendChild(txt);
+	var br = document.createElement('br');
+	td.appendChild(br);
+	var sp = document.createElement('span');
+	sp.setAttribute('style','font-size:8pt;color:#101010;');
+	td.appendChild(sp);
+	var txt = document.createTextNode('% of source values identical to dhis values');
+	sp.appendChild(txt);
+
+	var td = document.createElement('td');
+	tr.appendChild(td);
+	td.setAttribute('style','border-left:1px solid #E1E1E1;font-size:10pt;text-align:center;');
+	var txt = document.createTextNode(((iCorrectCount > 0) ?  '' + (parseFloat(iCorrectCount) / parseFloat(iExpectedCount) * 100).toFixed(1).replace('.0','') + '%' : '0%'));
+	td.appendChild(txt);
+	var sp = document.createElement('div');
+	sp.setAttribute('style','font-size:8pt;color:#808080;text-align:center;');
+	var txt = document.createTextNode(iCorrectCount + ' / ' + iExpectedCount);
+	sp.appendChild(txt);
+	td.appendChild(sp);
+
+	var tr = document.createElement('tr');
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.setAttribute('style','vertical-align:top;');
+	tr.appendChild(td);
+	var txt = document.createTextNode('Monthly compliance rate');
+	td.appendChild(txt);
+	var br = document.createElement('br');
+	td.appendChild(br);
+
+	var sp = document.createElement('span');
+	sp.setAttribute('style','font-size:8pt;color:#101010;');
+	td.appendChild(sp);
+	var txt = document.createTextNode('% of source values within 10% of dhis values');
+	sp.appendChild(txt);
+
+	var td = document.createElement('td');
+	tr.appendChild(td);
+	td.setAttribute('style','border-left:1px solid #E1E1E1;font-size:10pt;text-align:center;');
+	var txt = document.createTextNode(((iCompliantCount > 0) ?  '' + (parseFloat(iCompliantCount) / parseFloat(iExpectedCount) * 100).toFixed(1).replace('.0','') + '%' : '0%'));
+	td.appendChild(txt);
+	var sp = document.createElement('div');
+	sp.setAttribute('style','font-size:8pt;color:#808080;text-align:center;');
+	var txt = document.createTextNode(iCompliantCount + ' / ' + iExpectedCount);
+	sp.appendChild(txt);
+	td.appendChild(sp);
+
+	var tr = document.createElement('tr');
+	table.appendChild(tr);
+	var td = document.createElement('td');
+	td.setAttribute('style','vertical-align:middle;font-weight:700;background-Color:#EBEBEB;font-size:11pt;');
+	tr.appendChild(td);
+	var txt = document.createTextNode('ACCURACY SCORE');
+	td.appendChild(txt);
+
+	var td = document.createElement('td');
+	tr.appendChild(td);
+	td.setAttribute("title", iDiff + ' / ' + iSource);
+	td.setAttribute('style','border-left:1px solid #E1E1E1;font-size:14pt;font-weight:700;background-Color:#EBEBEB;text-align:center;');
+	var txt = document.createTextNode(((iDiff > 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
+	td.appendChild(txt);
+
+/*	var sp = document.createElement('div');
+	sp.setAttribute('style','font-size:8pt;color:#808080;');
+	var txt = document.createTextNode(iDiff + ' / ' + iSource);
+	sp.appendChild(txt);
+	td.appendChild(sp);*/
+	
+
+	var tr = document.createElement('tr');
+	tb.appendChild(tr);
+	var td = document.createElement('td');
+	tr.appendChild(td);
+
+	var lbl = document.createElement('div');
+	lbl.setAttribute('style','font-weight:400;color:#000000;font-size:9pt;padding-top:2px;text-align:left;');
+	var txt = document.createTextNode('Table 1. Audit Summary for ' + orgUnit.name + ' (' + sPer + ')');
+	lbl.appendChild(txt);
+	td.appendChild(lbl);
+
+}
+
+function formatNumber(num)
+{
+    return ("" + num).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, function($1) { return $1 + " " });
+}
+function formatDate(date) {
+    var d = new Date(date),
+        month = '' + (d.getMonth() + 1),
+        day = '' + d.getDate(),
+        year = d.getFullYear();
+
+    if (month.length < 2) month = '0' + month;
+    if (day.length < 2) day = '0' + day;
+
+    return [year, month, day].join('-');
+}
+function getParameterByName(name) {
+    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+        results = regex.exec(location.search);
+    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
+
+function ReturnLookupName(theData,Val){
+	sReturn = theData[Val].name;
+	return  sReturn;
+}
+
+
+function ReturnLookup(theData,fld0,fld2,fld4){
+
+	var i;
+	var sReturn = '';
+
+	for(i = 0; i < theData.rows.length; i++) {
+	
+		if (theData.rows[i][0] == fld0)
+		{
+			if (theData.rows[i][2] == fld2)
+			{
+				if (theData.rows[i][4] == fld4)
+				{
+					sReturn = theData.rows[i][5];
+				}
+
+			}
+
+		}
+
+	}
+
+	return sReturn;
+}
+
+	function GetOUlevelNames(OUlevelJ){
+
+		var i;
+		var sReturn = '';
+		var OUarr = [];
+
+		for(i = 0; i < OUlevelJ.organisationUnitLevels.length; i++) {
+			OUarr.push({
+				level: OUlevelJ.organisationUnitLevels[i].level,
+				name: OUlevelJ.organisationUnitLevels[i].name
+			});
+		}
+
+		return OUarr;
+	}
+
+	function GetOUlevelName(OUlevelJ,iOU){
+
+		var i;
+		var sReturn = '';
+
+		for(i = 0; i < OUlevelJ.organisationUnitLevels.length; i++) {
+			if (OUlevelJ.organisationUnitLevels[i].level == iOU){
+				sReturn = OUlevelJ.organisationUnitLevels[i].name;
+			}
+		}
+
+		if (sReturn == ''){
+			return iOU;
+		}
+		else{
+			return sReturn;
+		}
+
+	}
+
+</script>
+
+<div id='loadingmessage' name='loadingmessage' style=''>
+	<div style='color:#999999;font-family:arial;font-weight:700;font-size:11pt;width:25%;border:1px solid #F5F5F5;padding:4px;vertical-align:middle;' class='rounded'><Img Src='../images/ajax-loader-circle.gif'>&nbsp;LOADING</div>
+</div>
+
+<table style='width:900px;height:100%;' id='ReportResults' name='ReportResults'>
+ <tr>
+	<td id='ReportHeader' name='ReportHeader'>
+		
+	</td>
+ </tr>
+ <tr>
+  <td id='AnalysisDetails' name='AnalysisDetails' style=''>
+		
+  </td>
+ </tr>
+ <tr>
+  <td style='color:#CFCFCF;font-size:8pt;height:10px;'>
+	&nbsp;
+  </td>
+ </tr>
+</table>
