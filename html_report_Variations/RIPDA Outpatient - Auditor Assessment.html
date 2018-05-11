@@ -1227,7 +1227,7 @@ function CreateAnalysisSummary(myArr,sPer, tdSummary,ArrDen){
 	tr.appendChild(td);
 	td.setAttribute("title", iDiff + ' / ' + iSource);
 	td.setAttribute('style','border-left:1px solid #E1E1E1;font-size:14pt;font-weight:700;background-Color:#EBEBEB;text-align:center;');
-	var txt = document.createTextNode(((iDiff > 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
+	var txt = document.createTextNode(((iDiff >= 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
 	td.appendChild(txt);
 
 /*	var sp = document.createElement('div');

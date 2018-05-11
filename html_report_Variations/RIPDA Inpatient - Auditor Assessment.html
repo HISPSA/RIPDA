@@ -55,7 +55,6 @@
 		font-size:7pt;
 		color:#808080;
 	}
-	.truncateElement {width: 250px;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;}
 </style>
 
 
@@ -114,8 +113,8 @@ $(document).ready(
 
 	//var sJdata = '../api/analytics.json?dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=dx:bKWJNXHbCGi;HqtmIz7BW5I;qyPSSKPJX2R;Uuk6KYfDPQi;k7QSxunPnxQ;fDhBvaf8MmF;Jj6R76N8Bto;NEvVS5Lh75x;GnqI4JXgx7M;Z11sHOJV7uj;QlYc0VEXMoV;MmzbokFQNAz;CL8YLM1Gqeq;oqBHJlpqOcA;YdICnHJlRlj;I6mvcgUkbIL&dimension=pe:' + PEcr + '&displayProperty=NAME&outputIdScheme=ID&uniqueparm=' + DtmNow;
 	//var sPath = '../api/analytics.json?dimension=LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=dx:' + dxUIDs + '&dimension=pe:' + PEcr + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + DtmNow;
-	//Jbh3wnNuN2j
-	var sPath = '../api/analytics.json?dimension=WsZjXKlqUN0:lvOtc4VXYKo&dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=pe:' + PEcr + '&dimension=dx:' + dxUIDs + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + DtmNow;
+	//lvOtc4VXYKo
+	var sPath = '../api/analytics.json?dimension=WsZjXKlqUN0:qIZre0ATr0b&dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=pe:' + PEcr + '&dimension=dx:' + dxUIDs + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + DtmNow;
 	
 	//console.log(sPath);
 
@@ -133,10 +132,10 @@ function GetOrgUnitAssociatedElements(ouid){
 	var OUapi = '../api/organisationUnits/' + ouid + '.json?fields=id,name,dataSets[id,dataSetElements[dataElement[id,name]]]';
 	var ouJSON 	= JSON.parse($.ajax({url:OUapi, async: false}).responseText);
 	var sReturn = '';
-
+//console.log(OUapi);
 	for(var s = 0; s < ouJSON.dataSets.length; s++) {
 		//console.log(ouJSON.dataSets[s]);
-		if (ouJSON.dataSets[s].id == 'vv8ed5J7Frf'){
+		if (ouJSON.dataSets[s].id == 'wQ7XU962RIH'){
 			for(var i = 0; i < ouJSON.dataSets[s].dataSetElements.length; i++){
 				if (sReturn.indexOf(ouJSON.dataSets[s].dataSetElements[i].dataElement.id + ';') < 0){
 					sReturn += (ouJSON.dataSets[s].dataSetElements[i].dataElement.id + ';');
@@ -360,11 +359,11 @@ function LoadHTMLresultsTable(myData,PEq,PEcritera,PEdisplay,dxs){
 
 	var tbl = document.createElement('table');
 	tbl.style.width = '100%';
-	//tbl.style.minWidth = '800px';
+	tbl.style.minWidth = '800px';
 
 	var tr = document.createElement('tr');
 	var td = document.createElement('td');
-	td.setAttribute('style','vertical-align:top;text-align:left;width:50%');
+	td.setAttribute('style','vertical-align:top;text-align:left;');
 
 	ele.appendChild(tbl);
 	tbl.appendChild(tr);
@@ -372,7 +371,7 @@ function LoadHTMLresultsTable(myData,PEq,PEcritera,PEdisplay,dxs){
 
 	var h1 = document.createElement('h1');
 	h1.setAttribute('style','font-weight:700;color:#000000;padding:0;height:24px');
-	var txt = document.createTextNode('RIPDA Quarterly Report: PHC');
+	var txt = document.createTextNode('RIPDA Quarterly Report: Inpatients');
 	h1.appendChild(txt);
 	td.appendChild(h1);
 
@@ -432,7 +431,7 @@ function LoadHTMLresultsTable(myData,PEq,PEcritera,PEdisplay,dxs){
 
 	var tdSummary = document.createElement('td');
 	tdSummary.id = 'AnalysisSummary';
-	tdSummary.setAttribute('style','vertical-align:top;text-align:right;width:50%');
+	tdSummary.setAttribute('style','vertical-align:top;text-align:right;width:500px');
 	tr.appendChild(tdSummary);
 
 	var ele = document.getElementById('AnalysisDetails');
@@ -684,7 +683,7 @@ function LoadHTMLresultsTable(myData,PEq,PEcritera,PEdisplay,dxs){
 		table.appendChild(tr);
 		var td = document.createElement('td');
 		tr.appendChild(td);
-		td.setAttribute('class','truncateElement');
+		td.setAttribute('nowrap','');
 		var txt = document.createTextNode(myArr[i].dxname);
 		td.appendChild(txt);
 
@@ -1128,7 +1127,7 @@ function CreateAnalysisSummary(myArr,sPer, tdSummary,ArrDen){
 	tr.appendChild(td);
 
 	var table = document.createElement('table');
-	table.setAttribute('style','width:100%;border:2px solid #E1E1E1;padding:0;');
+	table.setAttribute('style','width:340px;border:2px solid #E1E1E1;padding:0;');
 	//table.setAttribute('align','left');
 	td.appendChild(table);
 
@@ -1228,7 +1227,7 @@ function CreateAnalysisSummary(myArr,sPer, tdSummary,ArrDen){
 	tr.appendChild(td);
 	td.setAttribute("title", iDiff + ' / ' + iSource);
 	td.setAttribute('style','border-left:1px solid #E1E1E1;font-size:14pt;font-weight:700;background-Color:#EBEBEB;text-align:center;');
-	var txt = document.createTextNode(((iDiff > 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
+	var txt = document.createTextNode(((iDiff >= 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
 	td.appendChild(txt);
 
 /*	var sp = document.createElement('div');
@@ -1346,7 +1345,7 @@ function ReturnLookup(theData,fld0,fld2,fld4){
 	<div style='color:#999999;font-family:arial;font-weight:700;font-size:11pt;width:25%;border:1px solid #F5F5F5;padding:4px;vertical-align:middle;' class='rounded'><Img Src='../images/ajax-loader-circle.gif'>&nbsp;LOADING</div>
 </div>
 
-<table style='width:825px;height:100%;' id='ReportResults' name='ReportResults'>
+<table style='width:900px;height:100%;' id='ReportResults' name='ReportResults'>
  <tr>
 	<td id='ReportHeader' name='ReportHeader'>
 		

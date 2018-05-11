@@ -113,8 +113,8 @@ $(document).ready(
 
 	//var sJdata = '../api/analytics.json?dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=dx:bKWJNXHbCGi;HqtmIz7BW5I;qyPSSKPJX2R;Uuk6KYfDPQi;k7QSxunPnxQ;fDhBvaf8MmF;Jj6R76N8Bto;NEvVS5Lh75x;GnqI4JXgx7M;Z11sHOJV7uj;QlYc0VEXMoV;MmzbokFQNAz;CL8YLM1Gqeq;oqBHJlpqOcA;YdICnHJlRlj;I6mvcgUkbIL&dimension=pe:' + PEcr + '&displayProperty=NAME&outputIdScheme=ID&uniqueparm=' + DtmNow;
 	//var sPath = '../api/analytics.json?dimension=LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=dx:' + dxUIDs + '&dimension=pe:' + PEcr + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + DtmNow;
-	//lvOtc4VXYKo
-	var sPath = '../api/analytics.json?dimension=WsZjXKlqUN0:Jbh3wnNuN2j&dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=pe:' + PEcr + '&dimension=dx:' + dxUIDs + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + DtmNow;
+	//Jbh3wnNuN2j
+	var sPath = '../api/analytics.json?dimension=WsZjXKlqUN0:lvOtc4VXYKo&dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=ou:' + orgUnit_id + '&dimension=pe:' + PEcr + '&dimension=dx:' + dxUIDs + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + DtmNow;
 	
 	//console.log(sPath);
 
@@ -1227,7 +1227,7 @@ function CreateAnalysisSummary(myArr,sPer, tdSummary,ArrDen){
 	tr.appendChild(td);
 	td.setAttribute("title", iDiff + ' / ' + iSource);
 	td.setAttribute('style','border-left:1px solid #E1E1E1;font-size:14pt;font-weight:700;background-Color:#EBEBEB;text-align:center;');
-	var txt = document.createTextNode(((iDiff > 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
+	var txt = document.createTextNode(((iDiff >= 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
 	td.appendChild(txt);
 
 /*	var sp = document.createElement('div');

@@ -135,7 +135,7 @@ function GetOrgUnitAssociatedElements(ouid){
 
 	for(var s = 0; s < ouJSON.dataSets.length; s++) {
 		//console.log(ouJSON.dataSets[s]);
-		if (ouJSON.dataSets[s].id == 'xjqRVGdYcu7'){
+		if (ouJSON.dataSets[s].id == 'vv8ed5J7Frf'){
 			for(var i = 0; i < ouJSON.dataSets[s].dataSetElements.length; i++){
 				if (sReturn.indexOf(ouJSON.dataSets[s].dataSetElements[i].dataElement.id + ';') < 0){
 					sReturn += (ouJSON.dataSets[s].dataSetElements[i].dataElement.id + ';');
@@ -371,7 +371,7 @@ function LoadHTMLresultsTable(myData,PEq,PEcritera,PEdisplay,dxs){
 
 	var h1 = document.createElement('h1');
 	h1.setAttribute('style','font-weight:700;color:#000000;padding:0;height:24px');
-	var txt = document.createTextNode('RIPDA Quarterly Report: Outpatients');
+	var txt = document.createTextNode('RIPDA Quarterly Report: PHC');
 	h1.appendChild(txt);
 	td.appendChild(h1);
 
@@ -1227,7 +1227,7 @@ function CreateAnalysisSummary(myArr,sPer, tdSummary,ArrDen){
 	tr.appendChild(td);
 	td.setAttribute("title", iDiff + ' / ' + iSource);
 	td.setAttribute('style','border-left:1px solid #E1E1E1;font-size:14pt;font-weight:700;background-Color:#EBEBEB;text-align:center;');
-	var txt = document.createTextNode(((iDiff > 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
+	var txt = document.createTextNode(((iDiff >= 0) ?  '' + (100 - (parseFloat(iDiff) / parseFloat(iSource) * 100)).toFixed(1).replace('.0','') + '%' : '0%'));
 	td.appendChild(txt);
 
 /*	var sp = document.createElement('div');
