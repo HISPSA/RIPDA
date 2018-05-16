@@ -162,12 +162,15 @@ function LoadHTMLresultsTable(myData,PEq,PEcritera,PEdisplay,dxs){
 	var sLastOU;
 	var ArrPEc = PEcritera.split(';');
 	var ArrPEd = PEdisplay.split(';');
-	var ObjAssessmentType = 'External Assessment'; //myData.metaData.items[myData.rows[0][1]].name;
 	var myLastDx = '';
 	var ArrPE = PEq.split('Q');
 	var OUlevel = 0;
 	var OUoutputLevel;
 	var ArrDen = dxs.split(';');
+
+	if (myData.rows.length>0){
+		var ObjAssessmentType = myData.metaData.items[myData.rows[0][1]].name;
+	}
 
 	for(i = 0; i < myData.rows.length; i++) {
 
