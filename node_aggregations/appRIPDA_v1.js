@@ -19,7 +19,6 @@ http.createServer(function (req, res) {
         var username = "Greg_Rowles";
         var password = "Hispian@1";
         var auth = "Basic " + new Buffer(username + ":" + password).toString("base64");
-
         var orgUnit_id = 'oehzJnthZZD'; //fs Mafube LM
         var PEcr = '2017Q1';
         var ouLevel = '';
@@ -46,7 +45,7 @@ http.createServer(function (req, res) {
 
         console.log((req.url).toString());
 
-        var url = URL_prefix + '/api/dataSets.json?fields=id,name,dataSetElements[dataElement[id,name,attributeValues[value,attribute[id]]]]&filter=id:in:[wQ7XU962RIH,vv8ed5J7Frf,xjqRVGdYcu7]';
+        var url = URL_prefix + '/api/dataSets.json?fields=id,name,dataSetElements[dataElement[id,name,attributeValues[value,attribute[id]]]]&filter=id:in:[wQ7XU962RIH,vv8ed5J7Frf,xjqRVGdYcu7]&filter=dataSetElements.dataElement.attributeValues.attribute.id:eq:TU0Z0GOyEV5';
 
         console.log("loading OU dataset (Elements)");
 
@@ -66,9 +65,9 @@ http.createServer(function (req, res) {
                             if ( (dxUIDs).indexOf(JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.id+';') < 0){
                                 dxUIDs += JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.id + ';';
                                 dxNames += JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.name + ',';
-                                if (JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.attributeValues.length>0){
-                                    if (JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.attributeValues[0].attribute.id == 'TU0Z0GOyEV5'){
-                                        dxArrpairs.push ({ dx: JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.id, qip: JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.attributeValues[0].value })
+                                for(var a=0; a<JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.attributeValues.length; a++) {
+                                    if (JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.attributeValues[a].attribute.id == 'TU0Z0GOyEV5'){
+                                        dxArrpairs.push ({ dx: JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.id, qip: JSON.parse(body).dataSets[d].dataSetElements[b].dataElement.attributeValues[a].value })
                                     }
                                 }
                             }
@@ -77,12 +76,14 @@ http.createServer(function (req, res) {
 
                     dxUIDs = dxUIDs.substring(0,dxUIDs.length-1);
 
+                    console.log("calling Analytics API");
+
                     var peMM = getMMcriteria(PEcr);
                     var dtmTimeNow = ((new Date().toISOString().split('T')[1]).split('.')[0]).replace(/:/g,'');
                     var url = URL_prefix + '/api/26/analytics.json?dimension=WsZjXKlqUN0:lvOtc4VXYKo;qIZre0ATr0b;Jbh3wnNuN2j&dimension=pe:' + peMM + '&dimension=cPD0W9FikTR:LArumsK99c4;kHGxIFekzcG&dimension=dx:' + dxUIDs + '&dimension=ou:' + ((ouLevel.length > 0) ? 'LEVEL-'+ouLevel+';' : '') + orgUnit_id + '&displayProperty=NAME&outputIdScheme=UID&uniqueparm=' + dtmTimeNow;
 
-                    res.writeHead(200, {'Content-Type': 'text/html'});
-                    res.write("<div>"+url+"</div><br>");
+                    //res.writeHead(200, {'Content-Type': 'text/html'});
+                    //res.write("<div>"+url+"</div><br>");
 
                     request.get( {
                             url : url,
@@ -95,7 +96,8 @@ http.createServer(function (req, res) {
                                 var data = loadDataArray(JSON.parse(body1),PEcr);
                                 //res.writeHead(200, {'Content-Type': 'text/json'});
                                 var fname = 'export/ripda_'+orgUnit_id+'_'+getyyyymmdd()+'_'+dtmTimeNow+'.json';
-                                fs.writeFileSync(fname, data);  
+                                fs.writeFileSync(fname, data);
+                                //res.writeHead(200, {'Content-Type': 'text/json'});
                                 //res.end(data);
                                 res.end('');
                             } else {
@@ -120,15 +122,31 @@ http.createServer(function (req, res) {
         return sReturn;
     }
 
+    function getMergedPEarr(peObj,qArr){
+        var iStepCounter = 0, qI = 0, ArrRet = [];
+        for(pe = 0; pe < peObj.length; pe++) {
+            iStepCounter += 1;
+            ArrRet.push ({ pe: peObj[pe], type: 'mm', alt: peObj[pe], name: peObj[pe] })
+            if (iStepCounter == 3){
+                ArrRet.push ({ pe: qArr[qI], type: 'q', alt: (qArr[qI]).toString().split('Q')[1], name: (qArr[qI]).toString().split('Q')[0]+'April' })
+                qI += 1;
+                iStepCounter = 0;
+            }
+        }
+        return ArrRet;
+    }
+
     function loadDataArray(myData,peC){
 
         var myArr = [];
+        var qArr = peC.split(';');
         var dxArr = myData.metaData.dimensions.dx;
         var ouArr = myData.metaData.dimensions.ou;
-        var peArr = myData.metaData.dimensions.pe;
-        var qArr = peC.split(';');
+        var peArr = getMergedPEarr(myData.metaData.dimensions.pe,qArr);
         var peSeq = getMMgroupSeq(peC);
         var dtmStamp = new Date().toISOString();
+
+        console.log("Initiating data array");
 
         for(dx = 0; dx < dxArr.length; dx++) {
             var dxPair = getDxQIPpair(dxArr[dx]);
@@ -137,55 +155,36 @@ http.createServer(function (req, res) {
                     for(pe = 0; pe < peArr.length; pe++) {
                         myArr.push({
                             dx:     dxArr[dx],
-                            dataElement: dxArr[dx],
-                            pe:     peArr[pe],
-                            period: peArr[pe],
-                            peType: 'mm',
-                            q:      peMMseq(peArr[pe],peSeq),
+                            dataElement: dxPair,
+                            pe:     peArr[pe].pe,
+                            period: peArr[pe].name,
+                            peType: peArr[pe].type,
+                            q:      ( (peArr[pe].type == 'mm') ? peMMseq(peArr[pe].pe,peSeq) : (peArr[pe].pe).split('Q')[1]),
                             orgUnit:     ouArr[ou],
-                            categoryOptionCombo: '',
-                            attributeOptionCombo: '',
+                            categoryOptionCombo: ( (peArr[pe].type != 'mm') ? ( ((peArr[pe].pe).toString().indexOf('Q1') > 0) ? 'EcMJ7gpxg6T' : ( ((peArr[pe].pe).toString().indexOf('Q2') > 0) ? 'I6unoam3wPR' : ( ((peArr[pe].pe).toString().indexOf('Q3') > 0) ? 'fOdVzDXDIWl' : ( ((peArr[pe].pe).toString().indexOf('Q4') > 0) ? 'MlxF1hgrSQZ' : '' ) ) ) ) : ''),
+                            attributeOptionCombo: ( (peArr[pe].type == 'mm') ? '' : 'n2OgrayehoK' ),
                             source: "",    // LArumsK99c4
                             dhis:   "",    // kHGxIFekzcG
                             diff:   "",
                             value: "",
-                            rowid: ouArr[ou] + '.' + dxArr[dx] + '.' + peArr[pe] + '.' + peMMseq(peArr[pe],peSeq),
-                            seqGroup: ouArr[ou] + '.' + dxArr[dx] + '.' + peMMseq(peArr[pe],peSeq),
+                            rowid: ouArr[ou] + '.' + dxArr[dx] + '.' + peArr[pe].pe, //+ '.' + ( (peArr[pe].type == 'mm') ? peMMseq(peArr[pe].pe,peSeq) : peArr[pe].pe )
+                            seqGroup: ouArr[ou] + '.' + dxArr[dx] + '.' + ( (peArr[pe].type == 'mm') ? peMMseq(peArr[pe].pe,peSeq) : '_' + (peArr[pe].alt) ) , 
                             storedBy: "Greg_Rowles",
                             created: dtmStamp,
                             lastUpdated: dtmStamp,
-                            followUp: false
-                        });
-                    }
-                    for(pe = 0; pe < qArr.length; pe++) {
-                        myArr.push({
-                            dx:     dxArr[dx],
-                            dataElement: getDxQIPpair(dxArr[dx]),
-                            pe:     qArr[pe],
-                            period: ( ((qArr[pe]).toString().indexOf('Q') > 0) ? ((qArr[pe]).toString().split('Q')[0] + 'April') : qArr[pe] ),
-                            peType: 'q',
-                            q:      (qArr[pe]).split('Q')[1],
-                            orgUnit:     ouArr[ou],
-                            categoryOptionCombo: ( ((qArr[pe]).toString().indexOf('Q1') > 0) ? 'EcMJ7gpxg6T' : ( ((qArr[pe]).toString().indexOf('Q2') > 0) ? 'I6unoam3wPR' : ( ((qArr[pe]).toString().indexOf('Q3') > 0) ? 'fOdVzDXDIWl' : ( ((qArr[pe]).toString().indexOf('Q4') > 0) ? 'MlxF1hgrSQZ' : '' ) ) ) ),
-                            attributeOptionCombo: 'n2OgrayehoK',
-                            source: "",    // LArumsK99c4
-                            dhis:   "",    // kHGxIFekzcG
-                            diff:   "",
-                            value: "",
-                            rowid: ouArr[ou] + '.' + dxArr[dx] + '.' + qArr[pe],
-                            seqGroup: ouArr[ou] + '.' + dxArr[dx] + '._' + (qArr[pe]).split('Q')[1],
-                            storedBy: "Greg_Rowles",
-                            created: dtmStamp,
-                            lastUpdated: dtmStamp,
-                            followUp: false
+                            followUp: false, 
+                            delete: 0
                         });
                     }
                 }
             }
         }
 
-        for(i = 0; i < myData.rows.length; i++) {
-            for(r = 0; r < myArr.length; r++) {
+        console.log(" ~ rows: " + myArr.length);
+        console.log("Loading data values");
+
+        for(r = 0; r < myArr.length; r++) {
+            for(i = 0; i < myData.rows.length; i++) {            
                 if ( (myData.rows[i][0] == myArr[r].dx) && (myData.rows[i][4] == myArr[r].orgUnit) && (myData.rows[i][2] == myArr[r].pe) ) {
                     if (myData.rows[i][3] == 'LArumsK99c4') {
                         myArr[r]['source'] = parseFloat(myData.rows[i][5]);
@@ -193,75 +192,89 @@ http.createServer(function (req, res) {
                     if (myData.rows[i][3] == 'kHGxIFekzcG') {
                         myArr[r]['dhis'] = parseFloat(myData.rows[i][5]);
                     }
-                    myArr[r]['categoryOptionCombo'] = myData.rows[i][4]; //( ((myArr[r]['pe']).toString().indexOf('Q1') > 0) ? 'I6unoam3wPR' : '' )
+                    myArr[r]['categoryOptionCombo'] = myData.rows[i][4]; 
+                }
+            }
+            if ( (myArr[r]['source']).length == 0){
+                myArr[r]['diff'] = 0;
+            } else {
+                if ( (myArr[r]['dhis']).length == 0){
+                    myArr[r]['diff'] = myArr[r]['source'];
+                } else {
+                    myArr[r]['diff'] = Math.abs(myArr[r]['source'] - myArr[r]['dhis']);
                 }
             }
         }
 
-        var sort_by = function(field, reverse, primer){
-            var key = primer ? function(x) {return primer(x[field])} : function(x) {return x[field]};
-            reverse = !reverse ? 1 : -1;
-            return function (a, b) { return a = key(a), b = key(b), reverse * ((a > b) - (b > a)); } 
-         }
-
-        myArr.sort(sort_by('rowid', false));
-
-        var iAggDhis = 0, iAggSource = 0;
+        var iAggDhis = 0, iAggSource = 0, iAggDiff = 0;
         var lastSeqGroup = '';
+
+        console.log("Loading Aggregate data values");
 
         for(r = 0; r < myArr.length; r++) {
             if ( (lastSeqGroup.length > 0) && (lastSeqGroup != myArr[r]['seqGroup']) ) {
                 if ( ( (myArr[r]['seqGroup']).indexOf('_') > 0 ) && ( (myArr[r]['seqGroup']).replace('_','') == lastSeqGroup ) ){
                     myArr[r]['dhis'] = iAggDhis;
                     myArr[r]['source'] = iAggSource;
-                    iAggDhis = 0, iAggSource = 0;
+                    myArr[r]['diff'] = iAggDiff;
+                    iAggDhis = 0, iAggSource = 0, iAggDiff = 0;
                     lastSeqGroup = '';
                 }
             } else {
                 lastSeqGroup = myArr[r]['seqGroup'];
                 iAggDhis += ( ( (myArr[r]['dhis']).toString().length > 0 ) ? parseFloat(myArr[r]['dhis']) : 0);
                 iAggSource += ( ( (myArr[r]['source']).toString().length > 0 ) ? parseFloat(myArr[r]['source']) : 0);
+                iAggDiff += ( ( (myArr[r]['diff']).toString().length > 0 ) ? parseFloat(myArr[r]['diff']) : 0);
             }
         }
 
-        var sRem = "";
+        var sRem = "", bRem = false;
+
+        console.log("Enumerating missing values");
 
         for(r = 0; r < myArr.length; r++) {
-            if ( (((myArr[r]['source']).toString().length == 0) && ((myArr[r]['dhis']).toString().length == 0)) || (myArr[r].peType == 'mm') ) { //|| (myArr[r].peType == 'mm')
-                sRem += (r + ','); // REMOVE ROWS WHERE NO VALUES EXIST
+            if (  (myArr[r].peType == 'mm') ) { //(((myArr[r]['source']).toString().length == 0) && ((myArr[r]['dhis']).toString().length == 0)) ||
+                //sRem += (r + ','); // REMOVE ROWS WHERE NO VALUES EXIST
+                bRem = true;
+                myArr[r].delete = 1;
             } else {
                 if ((myArr[r]['source']).toString().length == 0){
                     myArr[r]['value'] = 0;
-                    myArr[r]['diff'] = 0;
-                    sRem += (r + ','); // REMOVE CALCULATIONS WHERE NO AUDIT TOOK PLACE
+                    //myArr[r]['diff'] = 0;
+                    //sRem += (r + ','); // REMOVE CALCULATIONS WHERE NO AUDIT TOOK PLACE
+                    bRem = true;
+                    myArr[r].delete = 1;
                 } else {
                     if ((myArr[r]['dhis']).toString().length == 0){
-                        myArr[r]['value'] = (parseFloat(Math.abs(myArr[r]['source'] - 0) / myArr[r]['source']) * 100).toFixed(0);
-                        myArr[r]['diff'] = myArr[r]['source'];
+                        //myArr[r]['diff'] = myArr[r]['source'];
                     } else {
                         if (myArr[r]['source'] == 0){
                             myArr[r]['value'] = 0;
-                            sRem += (r + ','); // REMOVE ROWS WHERE NO VALUES EXIST
-                        } else {
-                            myArr[r]['value'] = (parseFloat(Math.abs(myArr[r]['source'] - myArr[r]['dhis']) / myArr[r]['source']) * 100).toFixed(0);
+                            //sRem += (r + ','); // REMOVE ROWS WHERE NO VALUES EXIST
+                            bRem = true;
+                            myArr[r].delete = 1;
                         }
-                        myArr[r]['diff'] = Math.abs(myArr[r]['source'] - myArr[r]['dhis']);
                     }
+                    myArr[r]['value'] = (parseFloat(Math.abs(myArr[r]['diff']) / myArr[r]['source']) * 100).toFixed(1).toString().replace('.0','');
                 }
             }
         }
 
-        if (sRem.length > 0){
-            var arrRem = sRem.substring(sRem,sRem.length-1).split(',');
-            console.log("Removing empty rows ("+arrRem.length+")");
-            for (var i = arrRem.length -1; i >= 0; i--)
-            myArr.splice(arrRem[i],1);
+        if (bRem == true){
+            var countArr = myArr.length;
+            console.log("Removing empty rows");
+            for (i=myArr.length-1;i>=0;--i) {
+                if (myArr[i].delete === 1) {
+                    myArr.splice(i, 1); // Remove even numbers
+                }
+            }
+            countArr = (countArr - myArr.length);
         }
 
-        console.log("Resulting data rows: " + myArr.length);
+        console.log("Resulting aggregate rows: " + myArr.length);
 
-        myArr.forEach(function(v){ delete v.pe; delete v.dx; delete v.peType; delete v.q; delete v.source; delete v.dhis; delete v.diff; delete v.rowid; delete v.seqGroup; });
-        //res.write('{ "dataValues": ' + (JSON.stringify(myArr)) + ' }');
+        myArr.forEach(function(v){ delete v.dx; delete v.pe; delete v.peType; delete v.q; delete v.rowid; delete v.source; delete v.dhis; delete v.diff; delete v.seqGroup; });
+
         return '{ "dataValues": ' + (JSON.stringify(myArr)) + ' }';
 
     }
